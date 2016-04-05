@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -103,8 +104,8 @@ public class TaskRunnerCallable extends CallableWithNdc<TaskRunner2Result> {
   private final String queryId;
   private final HadoopShim tezHadoopShim;
   private boolean shouldRunTask = true;
-  final Stopwatch runtimeWatch = new Stopwatch();
-  final Stopwatch killtimerWatch = new Stopwatch();
+  final Stopwatch runtimeWatch = Stopwatch.createUnstarted();
+  final Stopwatch killtimerWatch = Stopwatch.createUnstarted();
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
   private final AtomicBoolean isCompleted = new AtomicBoolean(false);
   private final AtomicBoolean killInvoked = new AtomicBoolean(false);
@@ -238,7 +239,7 @@ public class TaskRunnerCallable extends CallableWithNdc<TaskRunner2Result> {
       } finally {
         FileSystem.closeAllForUGI(taskUgi);
         LOG.info("ExecutionTime for Container: " + request.getContainerIdString() + "=" +
-            runtimeWatch.stop().elapsedMillis());
+            runtimeWatch.stop().elapsed(TimeUnit.MILLISECONDS));
         if (LOG.isDebugEnabled()) {
           LOG.debug("canFinish post completion: " + taskSpec.getTaskAttemptID() + ": " + canFinish());
         }
@@ -410,10 +411,10 @@ public class TaskRunnerCallable extends CallableWithNdc<TaskRunner2Result> {
           LOG.info("Killed task {}", requestId);
           if (killtimerWatch.isRunning()) {
             killtimerWatch.stop();
-            long elapsed = killtimerWatch.elapsedMillis();
+            long elapsed = killtimerWatch.elapsed(TimeUnit.MILLISECONDS);
             LOG.info("Time to die for task {}", elapsed);
           }
-          metrics.incrPreemptionTimeLost(runtimeWatch.elapsedMillis());
+          metrics.incrPreemptionTimeLost(runtimeWatch.elapsed(TimeUnit.MILLISECONDS));
           metrics.incrExecutorTotalKilled();
           break;
         case COMMUNICATION_FAILURE:
