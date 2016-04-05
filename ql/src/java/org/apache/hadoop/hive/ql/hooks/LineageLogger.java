@@ -462,7 +462,7 @@ public class LineageLogger implements ExecuteWithHookContext {
    */
   private String getQueryHash(String queryStr) {
     Hasher hasher = Hashing.md5().newHasher();
-    hasher.putString(queryStr);
+    hasher.putUnencodedChars(queryStr);
     return hasher.hash().toString();
   }
 }
